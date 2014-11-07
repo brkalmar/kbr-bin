@@ -1,0 +1,8 @@
+#!/bin/bash -e
+
+# List series seasons and their most common attributes using `sfmd ls`. Pass all
+# arguments to `sfmd ls`.
+#
+# 2014  Bence Kalmar
+
+sfmd --ignore-sfmd ls --format-no-name=text --format-no-name-text="$(printf '\033[91mXXXX\033[39m')" --format '{filename}  {"season"1"":0>2}  {"year-start"1"":4} - {"year-end"1"":4}'$'\n' "${@}"

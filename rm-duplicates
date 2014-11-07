@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# When 2 files with the same pattern are found, ask the user which one to remove
+#
+# 2013-03-27 / 2014-02-25
+# Bence Kalmar
+
+shopt -s dotglob extglob
+
+exit_value=0
+SELF_NAME="$(basename "${0}")"
+START_DIR="${PWD}"
+
+#### Functions
+
+get_name_pattern () {
+    local name="${1}"
+
+    # remove file extension
+    name="${name%.*}"
+    # convert all letters to lowercase
+    name="${name,,}"
+
+    local new_name=""
+    local length=${#name}
+    for ((i = 0; i < length; i = i + 1)); do
+        char="${name:${i}:1}"
+	case "${char}" in
+	    [[:alpha:]]) new_name+="${char}"
+		         ;;
+	    *)           new_name+=""
+		         ;;
+	esac
+    done
+
+    echo "${new_name}"
+}
+
+usage () {
+    local HELP_MESSAGE="\
+Go through all files in the given directories, and when two filenames have the
+same 'pattern', ask the user which one to remove.
+If no directory is given, the current directory is used."
+
+    local USAGE_MESSAGE="\
+Usage: ${SELF_NAME} [DIRECTORY...]"
+
+    case "${1}" in
+	argument)
+	    echo "${SELF_NAME}: invalid arguments" >&2
+	    echo "${USAGE_MESSAGE}" >&2
+	    exit 1
+	    ;;
+	help)      
+	    echo -e "${USAGE_MESSAGE}\n"
+	    echo "${HELP_MESSAGE}"
+	    exit 0
+	    ;;
+    esac
+}
+
+file_info () {
+    local filename="${1}"
+    echo " $(basename "${filename}")"
+    echo "  ${filename}"
+    echo "  $(file -b "${filename}")"
+    echo "  $(stat -c "%s B" "${filename}")"
+}
+
+#### Parsing arguments
+
+((${#} < 1)) && directories="${START_DIR}"
+   
+while ((${#} > 0)); do
+    if [[ -d "${1}" ]] && [[ -r "${1}" ]] && [[ -w "${1}" ]] && \
+            [[ -x "${1}" ]]; then
+	directories+=("${1%%+(/)}")
+    else
+	echo "${SELF_NAME}: cannot access directory: ${1}" >&2
+        usage argument
+    fi
+    shift
+done
+
+####
+
+for i in "${directories[@]}"; do
+    dir_files="$(ls -1A "${i}")"
+    [[ -z "${dir_files}" ]] && continue
+
+    IFS_OLD="${IFS}"
+    IFS=$'\n'
+
+    for j in ${dir_files}; do
+	[[ -f "${i}/${j}" ]] && [[ -w "${i}/${j}" ]] || continue
+	file_names+=("${j}")
+	file_paths+=("${i}/${j}")
+    done
+
+    IFS="${IFS_OLD}"
+done
+
+length=${#file_names[@]}
+for ((i = 0; i < length; i++)); do
+    file_names[i]="$(get_name_pattern "${file_names[i]}")"
+done
+
+# Display all converted names and their paths
+# echo "< ${#file_names[@]} >"
+# for ((i = 0; i < ${#file_names[@]}; i++)); do
+#    echo "${file_names[i]} : ${file_paths[i]}"
+# done
+
+while ((${#file_names[@]} > 0)); do
+    # unsetting so the filename is not compared with itself
+    current_name="${file_names[0]}"
+    unset file_names[0]
+    file_names=("${file_names[@]}")
+
+    current_path="${file_paths[0]}"
+    unset file_paths[0]
+    file_paths=("${file_paths[@]}")
+
+    length=${#file_names[@]}
+    for ((i = 0; i < length; i++)); do
+	if [[ "${current_name}" == "${file_names[i]}" ]]; then
+	    echo 1:
+	    file_info "${current_path}"
+	    echo 2:
+	    file_info "${file_paths[i]}"
+	    echo
+	    echo -n "Which file to REMOVE? [1/2/skip/exit] (skip) "
+
+	    read choice
+	    case "${choice}" in
+		1)
+		    if rm "${current_path}"; then
+	                echo "Done."
+		    else
+	                echo "Cannot remove file: \`${current_path}'" &>2
+		    fi
+		    ;;
+		2)  
+		    if rm "${file_paths[i]}"; then
+		        echo "Done."
+		    else
+		        echo "Cannot remove file: \`${file_paths[i]}'"
+		    fi
+		    # as the first file was removed from the arrays, it is
+		    # inserted back
+		    # the second file is removed with the same action
+		    file_paths[i]="${current_path}"
+		    file_names[i]="${current_name}"
+		    ;;
+		skip)
+		    echo "Skipping file."
+		    ;;
+		exit)
+		    exit 0
+		    ;;
+		*)    
+		    echo "Skipping file."
+		    ;;
+	    esac
+	    echo
+	    break
+	fi
+    done
+done
+
+exit ${exit_value}

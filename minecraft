@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Call Minecraft with optimal settings.
+#
+# 2014  Bence Kalmar
+
+java -jar ~/games/minecraft/minecraft.jar

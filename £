@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Usage: £ COMMAND [ARGS]...
+# Run COMMAND with args ARGS in the background in a subshell, redirecting all
+# input to `/dev/null'.
+# In case of errors, exit with exit code 100.
+# 
+# 2014-01-10 / 2014-02-25
+# Bence Kalmar
+
+((${#} < 1)) && exit 100
+
+shopt -s expand_aliases
+
+alias cmd="${1}"
+shift
+cmd "${@}" &>/dev/null &
+
+exit ${?}

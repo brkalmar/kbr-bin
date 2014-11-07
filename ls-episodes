@@ -1,0 +1,8 @@
+#!/bin/bash -e
+
+# List series episodes and their most common attributes using `sfmd ls`. Pass
+# all arguments to `sfmd ls`.
+#
+# 2014  Bence Kalmar
+
+sfmd --ignore-sfmd ls --format-no-name=text --format-no-name-text="$(printf '\033[91mXXXX\033[39m')" --format '{filename}  {"episode"1.." ":>5}  {"title"1.." | ":90.90} {"title-eng"1.." | ":90.90}'$'\n' "${@}"

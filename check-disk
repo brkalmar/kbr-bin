@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Checks the integrity of a burned disk and an iso image file.
+#
+# 2013-07-11 / 2014-02-25
+# Bence Kalmar
+
+exit_status=0
+SELF_NAME="$(basename "${0}")"
+
+SHORT_OPTS="d:qhb:"
+LONG_OPTS="device:,quiet,help,blocksize:"
+
+usage () {
+    local USAGE_MESSAGE="\
+Usage: ${SELF_NAME} [OPTION]... FILE"
+    local HELP_MESSAGE="\
+Checks the integrity of a burned disk against FILE (which should be an iso
+image), using \`sha512sum'.
+
+Options:
+  -b, --blocksize=N   blocksize to be used by \`dd'; FILE's size must be a
+                       multiple of this; 2048 is used by default
+  -d, --device=DEV    disk device to use; \`/dev/cdrom' is used by default
+  -h, --help          display this help screen and exit
+  -q, --quiet         do not print anything
+
+Exit statuses:
+  0  successful match
+  1  failed match
+  2  other error"
+
+    case ${1} in
+	help)
+	    echo "${USAGE_MESSAGE}"
+	    echo "${HELP_MESSAGE}"
+	    exit 0
+	    ;;
+	argument)
+	    echo "${SELF_NAME}: illegal arguments" >&2
+	    echo "${USAGE_MESSAGE}" >&2
+	    exit 2
+	    ;;
+    esac
+}
+
+####
+
+args=$(getopt -n "${SELF_NAME}" -o "${SHORT_OPTS}" -l "${LONG_OPTS}" -- "${@}")
+[[ ${?} != 0 ]] && usage argument
+eval set -- "${args}"
+
+device="/dev/cdrom"
+use_quiet="false"
+blocksize=2048
+
+while true; do
+    case "${1}" in
+	--)
+	    shift
+	    break
+	    ;;
+	-d|--device)
+	    shift
+	    if [[ -b "${1}" ]]; then
+		device="${1}"
+	    else
+		echo "${SELF_NAME}: \`${1}': not a block special" >&2
+		usage argument
+	    fi
+	    ;;
+	-q|--quiet)
+	    use_quiet="true"
+	    ;;
+	-h|--help)
+	    usage help
+	    ;;
+	-b|--blocksize)
+	    shift
+	    if [[ "${1}" =~ ^[0-9]+$ ]]; then
+		blocksize="${1}"
+	    else
+		echo "${SELF_NAME}: \`${1}': not an integer" >&2
+		usage argument
+	    fi
+	    ;;
+
+    esac
+    shift
+done
+
+((${#} != 1)) && usage argument
+file="${1}"
+
+####
+
+size=$(stat -c '%s' "${file}")
+checksum_file=$(sha512sum "${file}" | egrep -o '^[a-z0-9]*')
+${use_quiet} || echo -e "checksum of \`${file}':\n  ${checksum_file}"
+
+checksum_device=$(dd if="${device}" bs=${blocksize} count=$((size / ${blocksize})) 2>/dev/null | sha512sum | grep -o '^[a-z0-9]*')
+${use_quiet} || echo -e "checksum of \`${device}':\n  ${checksum_device}\n"
+
+if [[ "${checksum_file}" == "${checksum_device}" ]]; then
+    ${use_quiet} || echo "Match successful."
+else
+    ${use_quiet} || echo "Match failed."
+    exit_status=1
+fi
+
+exit ${exit_status}

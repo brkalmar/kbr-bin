@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Run add.py script with arguments.
+# 
+# 2013-12-24 / 2014-02-25
+# Bence Kalmar
+
+/usr/bin/env python3 /media/external_hdd/storage/torrent/add.py "${@}"

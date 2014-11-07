@@ -1,0 +1,14 @@
+#!/bin/bash -e
+
+# Remake Xorg configuration file.
+#
+# 2014  Bence Kalmar
+
+# make new config file
+sudo Xorg :1 -configure
+
+# backup old config file
+sudo cp /etc/X11/xorg.conf /etc/X11/xorg.conf.old
+
+# move new config file to place
+sudo mv /root/xorg.conf.new /etc/X11/xorg.conf

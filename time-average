@@ -1,0 +1,168 @@
+#!/bin/bash
+
+# Runs the time command to time a command several times and prints out the
+# average times.
+#
+# 2013-04-05 / 2014-02-25
+# Bence Kalmar
+
+exit_value=0
+START_DIR="${PWD}"
+SELF_NAME="$(basename "${0}")"
+
+SHORT_OPTIONS="t:qho:a"
+LONG_OPTIONS="times:,quiet,help,output:append"
+
+TIME_EXEC="/usr/bin/time"
+TIME_FORMAT="%e %U %S"
+COMMAND_TMP=$(mktemp "/tmp/${SELF_NAME}.$$.XXXXXXXXXX") || usage tmp
+TIMES_TMP=$(mktemp "/tmp/${SELF_NAME}.$$.XXXXXXXXXX") || usage tmp
+
+####
+
+function usage {
+    local HELP_MESSAGE="\
+Usage: ${SELF_NAME} [OPTION] <COMMAND> [COMMAND_ARGS...]
+Run \`${TIME_EXEC}' with COMMAND and COMMAND_ARGS as arguments several times and
+print out the average of those times in the default formatting used by
+\`${TIME_EXEC}'.
+Any options after the argument \`--' will be interpreted as options to COMMAND
+and not to ${SELF_NAME} itself.
+
+Options:
+  -a, --append     append COMMAND's output to the output file instead of
+                   overwriting it; only useful with -o|--output
+  -o, --output=FILE  redirect COMMAND's output to FILE instead of stdout
+  -h, --help       display this help and exit
+  -q, --quiet      do not display anything apart from the results of timing
+  -t, --times=N    specify how many times the command is to be executed; N must
+                   be an integer greater than 0 (it is 3 by default)"
+
+    local INFO_MESSAGE="\
+Try \`${SELF_NAME} --help' for more information"
+
+    case ${1} in
+	args)
+	    echo "${SELF_NAME}: invalid arguments" >&2
+	    echo "${INFO_MESSAGE}" >&2
+	    exit 1
+	    ;;
+	command)
+	    echo "${SELF_NAME}: error while running COMMAND" >&2
+	    echo "${INFO_MESSAGE}" >&2
+	    exit 2
+	    ;;
+	help)
+	    echo "${HELP_MESSAGE}"
+	    exit 0
+	    ;;
+	tmp)
+	    echo "${SELF_NAME}: cannot create tmp directories" >&2
+	    exit 3
+	    ;;
+	file)
+	    echo "${SELF_NAME}: cannot access file: ${COMMAND_FILE}" >&2
+	    exit 4
+    esac
+}
+
+#### Parsing arguments
+
+args=$(getopt -n "${SELF_NAME}" -o "${SHORT_OPTIONS}" -l "${LONG_OPTIONS}" -- \
+"${@}")
+[[ ${?} != 0 ]] && usage args
+eval set -- "${args}"
+
+use_quiet="false"
+repeat_nr=3
+use_output="false"
+use_append="false"
+
+while true; do
+    case "${1}" in
+	--)
+	    shift
+	    break
+	    ;;
+	-t|--times)
+	    shift
+	    [[ "${1}" =~ ^[0-9]+$ ]] && repeat_nr=${1} || usage args
+	    ((repeat_nr <= 0)) && usage args
+	    ;;
+	-q|--quiet)
+	    use_quiet="true"
+	    ;;
+	-h|--help)
+	    usage help
+	    ;;
+	-o|--output)
+	    use_output="true"
+	    shift
+	    COMMAND_FILE=${1}
+	    ;;
+	-a|--append)
+	    use_append="true"
+	    ;;
+    esac
+    shift
+done
+
+#### Main
+
+((${#} > 0)) && COMMAND="${1}" || usage args
+shift
+
+while ((${#} > 0)); do
+    command_args+=("${1}")
+    shift
+done
+
+# bc needs a first number in the first iteration
+time_array=(0 0 0)
+
+for ((i = 1; i <= repeat_nr; i++)); do
+    ${use_quiet} || echo -n "iteration ${i}"
+
+    ${TIME_EXEC} -f "${TIME_FORMAT}" "${COMMAND}" "${command_args[@]}" \
+      1>"${COMMAND_TMP}" 2>"${TIMES_TMP}"
+    current_times=($(cat "${TIMES_TMP}"))
+    ((${#current_times[@]} != 3)) && usage command
+
+    for ((j = 0; j < 3; j++)); do
+	time="${current_times[j]}"
+	[[ "${time}" =~ ^[0-9]+\.[0-9]+$ ]] || usage command
+	time_array[j]=$(echo "${time_array[j]} + ${time}" | bc)
+    done
+
+    ${use_quiet} || echo -ne "\r"
+done
+
+time_real=$(echo "scale=3; ${time_array[0]} / ${repeat_nr}" | bc)
+[[ "${time_real:0:1}" == '.' ]] && time_real="0${time_real}"
+
+time_user=$(echo "scale=3; ${time_array[1]} / ${repeat_nr}" | bc)
+[[ "${time_user:0:1}" == '.' ]] && time_user="0${time_user}"
+
+time_sys=$(echo "scale=3; ${time_array[2]} / ${repeat_nr}" | bc)
+[[ "${time_sys:0:1}" == '.' ]] && time_sys="0${time_sys}"
+
+if ! ${use_quiet}; then
+    if ${use_output}; then
+	if ${use_append}; then
+	    cat "${COMMAND_TMP}" >> "${COMMAND_FILE}" || usage file
+	else
+	    cp "${COMMAND_TMP}" "${COMMAND_FILE}" || usage file
+	fi
+    else
+	echo -e "\n"
+	cat "${COMMAND_TMP}"
+	echo
+    fi
+fi
+
+echo "average over ${repeat_nr} iterations"
+echo "real    ${time_real}s"
+echo "user    ${time_user}s"
+echo "sys     ${time_sys}s"
+
+exit ${exit_value}

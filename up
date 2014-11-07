@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+# Print the path some number of directories up relative to ".".
+#
+# 2014  Bence Kalmar
+
+import sys
+import argparse
+import os
+import os.path
+
+PROGRAM_NAME = os.path.basename(sys.argv[0])
+
+
+class CustomFormatter(argparse.RawDescriptionHelpFormatter,
+                        argparse.ArgumentDefaultsHelpFormatter):
+    """
+    Custom `argparse` formatter which prints the description & epilog raw, &
+    appends information about the default value to each optional argument.
+    """
+    pass
+
+
+parser = argparse.ArgumentParser(
+    description="""\
+Print the path some number of directories up relative to ".".
+""",
+    epilog="""\
+Examples:
+
+$ up 3
+../../../
+
+$ up 2 path/to/a/file
+../../path/to/a/file
+""",
+    formatter_class=CustomFormatter,
+    prog=PROGRAM_NAME
+)
+
+def err(msg, status=None):
+    """
+    Print error `msg` to stderr prefixed by program name & "error".
+
+    status - If not None, exit with exit status `status`.
+    """
+    sys.stderr.write("{}: error: {}\n".format(PROGRAM_NAME, msg))
+    parser.print_usage(sys.stderr)
+    if status is not None:
+        sys.exit(status)
+
+def int_positive(s):
+    """
+    Convert s to integer, call `err` if not integer or not positive.
+    """
+    try:
+        res = int(s)
+    except ValueError:
+        err("argument N {}: not an integer".format(s.__repr__()), 2)
+    if res < 1:
+        err("argument N {}: not a positive integer".format(s.__repr__()), 2)
+    return res
+
+def assemble_path(args):
+    """Return path assembled from members of `args`."""
+    elems = ["."]
+    for i in range(args.n):
+        elems.append("..")
+    if args.subpath is not None:
+        elems.append(args.subpath)
+    return os.path.join(*elems)
+
+def action(args, path):
+    """Print `path` to stdout."""
+    sys.stdout.write(path + "\n")
+
+if __name__ == "__main__":
+
+    parser.add_argument(
+        "n",
+        default=1,
+        type=int_positive,
+        metavar="N",
+        nargs="?",
+        help='Number of directories up from ".".'
+    )
+
+    parser.add_argument(
+        "subpath",
+        default=None,
+        metavar="SUBPATH",
+        nargs="?",
+        help="Append %(metavar)s to the output directory."
+    )
+
+    args = parser.parse_args()
+    path = assemble_path(args)
+    action(args, path)

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Convert all arguments (which must be .flac files) to .mp3 files.
+# No support for tags yet.
+#
+# 2013  Bence Kalmar
+
+usage() {
+    case ${1} in
+	flac)
+	    echo "${SELF_NAME}: error while running \`flac' on file \`${2}'" >&2
+	    rm "${tmp_file}"
+	    exit 1
+	    ;;
+	lame)
+	    echo "${SELF_NAME}: error while running \`lame' on file \`${2}'" >&2
+	    rm "${tmp_file}"
+	    exit 2
+	    ;;
+	tmpfile)
+	    echo "${SELF_NAME}: error with temporary file" >&2
+	    exit 3
+	    ;;
+    esac
+}
+
+SELF_NAME="${0}"
+
+tmp_file="$(mktemp)"
+[[ ${?} != 0 ]] && usage tmpfile
+
+convert() {
+    flac -dsf -o "${tmp_file}" "${1}" || usage flac "${1}"
+    lame -q 0 --quiet "${tmp_file}" "${1%.flac}.mp3" || usage lame "${1}"
+}
+
+while ((${#} > 0)); do
+    convert "${1}"
+    shift
+done
+
+rm "${tmp_file}" || usage tmpfile
+exit

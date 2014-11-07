@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+# Download a GNU license into a file.
+#
+# 2014  Bence Kalmar
+
+import sys
+import os.path
+import argparse
+
+import requests
+import requests.exceptions
+
+PROG_NAME = os.path.basename(sys.argv[0])
+
+def warn(fmt, *args):
+    sys.stderr.write("{}: {}\n".format(PROG_NAME, fmt.format(*args)))
+
+def err(status, fmt, *args):
+    warn(fmt, *args)
+    if status != 0:
+        sys.exit(status)
+
+parser = argparse.ArgumentParser(
+    description="Download a GNU license into a file.",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+parser.add_argument(
+    "-f", "--file",
+    help="the license is written to this file",
+    default="LICENSE.txt"
+    )
+
+parser.add_argument(
+    "short_name",
+    help="short name of the license, under which it resides on the website",
+    default="gpl",
+    metavar="SHORT_NAME",
+    nargs="?"
+    )
+
+LICENSE_URL="http://www.gnu.org/licenses/{}.txt"
+
+def license_url(short_name):
+    return LICENSE_URL.format(short_name)
+
+def download(url, filename, block_size=2**16):
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        err(1, "cannot access URL: {}", e)
+
+    try:
+        f = open(filename, "wb")
+    except OSError as e:
+        err(1, "{}", e)
+
+    for block in response.iter_content(block_size):
+        f.write(block)
+
+    f.close()
+
+def main():
+    args = parser.parse_args()
+    url = license_url(args.short_name)
+    download(url, args.file)
+
+if __name__ == "__main__":
+    main()

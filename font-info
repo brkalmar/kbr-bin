@@ -1,0 +1,194 @@
+#!/usr/bin/env python
+
+# Character information from TTF & OTF font files.
+#
+# 2014  Bence Kalmar
+
+import sys
+import argparse
+import itertools
+import unicodedata
+import re
+import signal
+
+import fontTools.ttLib
+
+parser = argparse.ArgumentParser(
+    description="""
+    Get supported character information from TTF & OTF font files.
+    """,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+parser.add_argument(
+    "-f", "--char-format",
+    choices=("codepoint", "name", "both"),
+    help="""
+    format to print the characters in; codepoint means the "U+hex" format, name
+    means the Unicode name, both means both
+    """,
+    default="both"
+    )
+
+parser.add_argument(
+    "-I", "--exclude-glyph-id",
+    metavar="ID[,ID...]",
+    help="""
+    exclude characters mapping to glyphs with id %(metavar)s ("none" for no
+    exclusion)
+    """,
+    default="0,1,2",
+    type=lambda x: [int(s) for s in x.split(",")] if x != "none" else []
+    )
+
+parser.add_argument(
+    "-N", "--exclude-glyph-name",
+    metavar="NAME[,NAME...]",
+    help="exclude characters mapping to glyphs with name %(metavar)s",
+    default=[],
+    type=lambda x: x.split(",")
+    )
+
+parser.add_argument(
+    "-g", "--print-glyph",
+    action="store_true",
+    help="print the glyph id and name each character maps to"
+    )
+
+parser.add_argument(
+    "file",
+    metavar="FILE",
+    help="a '.ttf' or '.otf' file"
+    )
+
+subparsers = parser.add_subparsers(
+    dest="subcommand",
+    description="""
+    for more information on each subcommand: %(prog)s x SUBCOMMAND -h
+    """
+    )
+
+parser_list_supported = subparsers.add_parser(
+    "list-supported",
+    description="""
+    Print all characters supported by the fonts, separated by newlines.
+    """,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+parser_is_supported = subparsers.add_parser(
+    "is-supported",
+    description="""
+    Print all characters supported by the fonts, separated by newlines &
+    followed by either "yes" or "no".
+    """,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+parser_is_supported.add_argument(
+    "char",
+    nargs="+",
+    help="""
+    character; can be of the "U+hex" format, or a Unicode name
+    """,
+    metavar="CHAR"
+)
+
+
+class Char:
+
+    def __init__(self, codepoint, glyph_id, glyph_name):
+        self.codepoint = codepoint
+        self.glyph_id = glyph_id
+        self.glyph_name = glyph_name
+
+
+def get_chars(font, exclude_glyph_ids, exclude_glyph_names):
+    """Return list of `Char`s from `font`."""
+    cmap_dict = {}
+    for x in font["cmap"].tables:
+        for k, v in x.cmap.items():
+            gid = font.getGlyphID(v)
+            if not (v in exclude_glyph_names or gid in exclude_glyph_ids):
+                cmap_dict[k] = [v, gid]
+    res = []
+    for k, v in cmap_dict.items():
+        res.append(Char(k, v[1], v[0]))
+    res.sort(key=lambda x: x.codepoint)
+    return res
+
+
+def print_char(char, char_format, print_glyph):
+    """
+    Print `char` depending on `char_format` & `print_glyph`.
+
+    Don't print a newline at the end.
+    """
+    if "codepoint" in char_format:
+        sys.stdout.write("U+{:04X}".format(char.codepoint))
+    if len(char_format) == 2:
+        sys.stdout.write("  ")
+    if "name" in char_format:
+        try:
+            sys.stdout.write(unicodedata.name(unichr(char.codepoint)))
+        except ValueError:
+            sys.stdout.write("<NO NAME>")
+    if print_glyph:
+        sys.stdout.write(
+            "  {} {}".format(char.glyph_id, char.glyph_name.__repr__()))
+
+def list_supported(args, chars):
+    for c in chars:
+        print_char(c, args.char_format, args.print_glyph)
+        sys.stdout.write("\n")
+
+RE_CODEPOINT = re.compile(r"^U\+([0-9A-F]{4,6})$")
+RE_NAME = re.compile(r"^[A-Z0-9- ]+$")
+
+def is_supported(args, chars):
+    check = []
+    for s in args.char:
+        m = RE_CODEPOINT.match(s)
+        if m:
+            check.append(int(m.group(1), 16))
+            continue
+        if RE_NAME.match(s):
+            try:
+                check.append(ord(unicodedata.lookup(s)))
+            except KeyError as e:
+                parser_is_supported.error(e)
+            continue
+        parser_is_supported.error(
+            "{} is not either of the acceptable formats".format(s.__repr__()))
+
+    for i in check:
+        found = False
+        for x in chars:
+            if i == x.codepoint:
+                found = True
+                char = x
+        if found:
+            print_char(char, args.char_format, args.print_glyph)
+            sys.stdout.write("  yes\n")
+        else:
+            print_char(Char(i, -1, "<no glyph>"), args.char_format, args.print_glyph)
+            sys.stdout.write("  no\n")
+
+
+def main():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    args = parser.parse_args()
+    try:
+        font = fontTools.ttLib.TTFont(args.file)
+    except (IOError, fontTools.ttLib.TTLibError) as e:
+        parser.error(e)
+    chars = get_chars(font, args.exclude_glyph_id, args.exclude_glyph_name)
+    args.char_format = (("codepoint", "name") if args.char_format == "both"
+                        else (args.char_format,))
+    if args.subcommand == "list-supported":
+        list_supported(args, chars)
+    elif args.subcommand == "is-supported":
+        is_supported(args, chars)
+
+if __name__ == "__main__":
+    main()

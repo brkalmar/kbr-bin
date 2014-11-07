@@ -1,0 +1,18 @@
+# Compiled binaries
+/downcase
+/exitcode
+/padleft
+/padright
+/random
+/synchsafe-int
+/upcase
+
+# Symbolic links
+/mc-player-info
+/sfmd
+/shotcut
+/teamspeak
+/ts3client
+
+# Third-party
+/repo

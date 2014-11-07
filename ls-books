@@ -1,0 +1,8 @@
+#!/bin/bash -e
+
+# List books and their most common attributes using `sfmd ls`.  Pass all
+# arguments to `sfmd ls`.
+#
+# 2014  Bence Kalmar
+
+sfmd --ignore-sfmd ls --format-no-name=text --format-no-name-text="$(printf '\033[91mMISSING\033[39m')" --format '{filename}  {"to-read"b"T"" "}  {"title"1"":40.40}  {"title-eng"1"":40.40}  {"year"1"":4}  {"language-translated"b"T"" "}  {"language"1..", ":20.20}  {"author"1.."; ":.50}'$'\n' "${@}"

@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+# Find the complementary divisors of an integer with the least sum.
+#
+# 2014  Bence Kalmar
+
+import argparse
+import math
+
+parser = argparse.ArgumentParser(
+    description="""
+Find the complementary divisor pair of a positive integer whose sum of elements
+is the least out of all complementary divisor pairs.
+
+Print the two divisors separated by whitespace, the lesser first and the greater
+second.
+""",
+)
+
+def int_pos(s):
+    res = int(s)
+    if res < 1:
+        raise ValueError("not positive: {}".format(res))
+    return res
+
+parser.add_argument(
+    "n",
+    help="The integer.",
+    type=int_pos,
+)
+
+
+args = parser.parse_args()
+
+sum_least = float("inf")
+for i in range(1, int(math.sqrt(args.n)) + 1):
+    if args.n % i == 0:
+        divisors_cur = [i, args.n // i]
+        sum_cur = sum(divisors_cur)
+        if sum_cur < sum_least:
+            sum_least = sum_cur
+            divisors = divisors_cur
+
+print("{} {}".format(divisors[0], divisors[1]))
