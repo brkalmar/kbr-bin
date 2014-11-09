@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+
+# Output the diff between two `.docx` files.
+#
+# 2014  Bence Kalmar
+
+filename_1="$(tempfile)"
+docx2txt "${1}" "${filename_1}"
+
+docx2txt "${2}" - | diff "${filename_1}" -
+
+exit ${?}
