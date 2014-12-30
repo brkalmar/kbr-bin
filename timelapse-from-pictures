@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+
+# 2014  Bence Kalmar
+
+import argparse
+import subprocess
+import sys
+
+parser = argparse.ArgumentParser(
+    description="""
+    Create a video, using a series of pictures as frames.  Use `ffmpeg` with the
+    H.264 codec (libx264).
+    """,
+)
+
+parser.add_argument(
+    "--crf",
+    default="18",
+    help="""
+    The `-crf` option for libx264.  Smaller: better quality, larger filesize.
+    Good values are between 18-28.  Default: %(default)r.
+    """
+)
+
+parser.add_argument(
+    "--framerate",
+    default="30",
+    help="""
+    The framerate of the video.  `-framerate` and `-r` in `ffmpeg`.  Default:
+    %(default)r.
+    """,
+)
+
+parser.add_argument(
+    "--lossless",
+    action="store_true",
+    help="""
+    Libx264 is passed `-qp 0` and not passed the `-crf` option, which encodes
+    the output losslessly.  Results in a very large video file.
+    """,
+)
+
+parser.add_argument(
+    "--print-no-action",
+    action="store_true",
+    help="""
+    Print the command that would have been executed and exit without executing
+    it.
+    """
+)
+
+parser.add_argument(
+    "--preset",
+    default="ultrafast",
+    help="""
+    The `-preset` option for libx264.  Default: %(default)r.
+    """
+)
+
+parser.add_argument(
+    "--size",
+    default=None,
+    help="""
+    The size of the video. `-s` in `ffmpeg`.  Default: not given.
+    """,
+)
+
+parser.add_argument(
+    "--start-number",
+    default="1",
+    help="""
+    The number that the first filename contains.  `-start_number` in `ffmpeg`.
+    Default: %(default)r.
+    """,
+)
+
+parser.add_argument(
+    "picture_filename_pattern",
+    help="""
+    The pattern for the filenames of the pictures.  `-pattern_type sequence` is
+    used in `ffmpeg`.
+    """,
+    metavar="PICTURE-FILENAME-PATTERN",
+)
+
+parser.add_argument(
+    "out_file",
+    help="""
+    The output filename.
+    """,
+    metavar="OUT-FILE",
+)
+
+args = parser.parse_args()
+
+command = ["ffmpeg"]
+
+## Global
+
+command += ["-benchmark"]
+
+## Input
+
+command += ["-f", "image2"]
+
+command += ["-framerate", args.framerate]
+
+if args.start_number is not None:
+    command += ["-start_number", args.start_number]
+
+command += ["-i", args.picture_filename_pattern]
+
+## Output
+
+command += ["-codec:v", "libx264"]
+command += ["-threads", "2"]
+
+command += ["-r", args.framerate]
+
+if args.lossless:
+    command += ["-qp", "0"]
+else:
+    command += ["-crf", args.crf]
+
+command += ["-preset", args.preset]
+
+if args.size is not None:
+    command += ["-s", args.size]
+
+command.append(args.out_file)
+
+if args.print_no_action:
+    print(" ".join(repr(s) for s in command))
+    sys.exit(0)
+
+subprocess.check_call(command)
