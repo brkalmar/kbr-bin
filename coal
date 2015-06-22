@@ -12,6 +12,6 @@ import termcolor
 
 nr = 1
 for l in sys.stdin:
-    highlight = "on_white" if nr % 2 else None
+    highlight = None if nr % 2 else "on_white"
     termcolor.cprint(l.rstrip("\n"), None, highlight)
     nr += 1
