@@ -1,111 +1,96 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-# Checks the integrity of a burned disk and an iso image file.
+# Checks the integrity of a burned disk and an ISO image file.
 #
-# 2013-07-11 / 2014-02-25
-# Bence Kalmar
+# 2013  Bence Kalmar
 
-exit_status=0
-SELF_NAME="$(basename "${0}")"
+import argparse
+import hashlib
+import os
+import sys
 
-SHORT_OPTS="d:qhb:"
-LONG_OPTS="device:,quiet,help,blocksize:"
+import sh
 
-usage () {
-    local USAGE_MESSAGE="\
-Usage: ${SELF_NAME} [OPTION]... FILE"
-    local HELP_MESSAGE="\
-Checks the integrity of a burned disk against FILE (which should be an iso
-image), using \`sha512sum'.
 
-Options:
-  -b, --blocksize=N   blocksize to be used by \`dd'; FILE's size must be a
-                       multiple of this; 2048 is used by default
-  -d, --device=DEV    disk device to use; \`/dev/cdrom' is used by default
-  -h, --help          display this help screen and exit
-  -q, --quiet         do not print anything
+SELF_NAME = os.path.basename(sys.argv[0])
 
-Exit statuses:
-  0  successful match
-  1  failed match
-  2  other error"
+def perror(msg, exit_status=None):
+    sys.stderr.write("{}: {}\n".format(SELF_NAME, msg))
+    if exit_status is not None:
+        sys.exit(exit_status)
 
-    case ${1} in
-	help)
-	    echo "${USAGE_MESSAGE}"
-	    echo "${HELP_MESSAGE}"
-	    exit 0
-	    ;;
-	argument)
-	    echo "${SELF_NAME}: illegal arguments" >&2
-	    echo "${USAGE_MESSAGE}" >&2
-	    exit 2
-	    ;;
-    esac
-}
 
-####
+parser = argparse.ArgumentParser(
+    description="""
+    Check the integrity of a burned disk against an ISO image using SHA-512.
+    """,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    epilog="""
+    Exit status: 0: successful match; 1: failed match; 2: other error.
+    """,
+)
 
-args=$(getopt -n "${SELF_NAME}" -o "${SHORT_OPTS}" -l "${LONG_OPTS}" -- "${@}")
-[[ ${?} != 0 ]] && usage argument
-eval set -- "${args}"
+parser.add_argument(
+    "-b", "--blocksize",
+    default=2048,
+    help="Blocksize to be used by `dd`; FILE's size must be a multiple of this",
+    metavar="N",
+    type=int,
+)
 
-device="/dev/cdrom"
-use_quiet="false"
-blocksize=2048
+parser.add_argument(
+    "-d", "--device",
+    default="/dev/cdrom",
+    help="Disk device to use",
+    metavar="DEV",
+)
 
-while true; do
-    case "${1}" in
-	--)
-	    shift
-	    break
-	    ;;
-	-d|--device)
-	    shift
-	    if [[ -b "${1}" ]]; then
-		device="${1}"
-	    else
-		echo "${SELF_NAME}: \`${1}': not a block special" >&2
-		usage argument
-	    fi
-	    ;;
-	-q|--quiet)
-	    use_quiet="true"
-	    ;;
-	-h|--help)
-	    usage help
-	    ;;
-	-b|--blocksize)
-	    shift
-	    if [[ "${1}" =~ ^[0-9]+$ ]]; then
-		blocksize="${1}"
-	    else
-		echo "${SELF_NAME}: \`${1}': not an integer" >&2
-		usage argument
-	    fi
-	    ;;
+parser.add_argument(
+    "-q", "--quiet",
+    action="store_true",
+    help="""
+    Do not print anything.  Examine status code to see the result of the check
+    """
+)
 
-    esac
-    shift
-done
+parser.add_argument(
+    "file",
+    help="The ISO image file.",
+    metavar="FILE",
+)
 
-((${#} != 1)) && usage argument
-file="${1}"
+args = parser.parse_args()
 
-####
+def plog(msg):
+    if not args.quiet:
+        sys.stdout.write("{}\n".format(msg))
 
-size=$(stat -c '%s' "${file}")
-checksum_file=$(sha512sum "${file}" | egrep -o '^[a-z0-9]*')
-${use_quiet} || echo -e "checksum of \`${file}':\n  ${checksum_file}"
 
-checksum_device=$(dd if="${device}" bs=${blocksize} count=$((size / ${blocksize})) 2>/dev/null | sha512sum | grep -o '^[a-z0-9]*')
-${use_quiet} || echo -e "checksum of \`${device}':\n  ${checksum_device}\n"
+def main():
+    with open(args.file, "rb") as f:
+        checksum_file = hashlib.sha512(f.read()).digest()
+        size = f.tell()
 
-if [[ "${checksum_file}" == "${checksum_device}" ]]; then
-    ${use_quiet} || echo "Match successful."
-else
-    ${use_quiet} || echo "Match failed."
-    exit_status=1
-fi
+    plog("checksum of {!r}:\n  {}\n".format(args.file, checksum_file))
 
-exit ${exit_status}
+    if size % args.blocksize != 0:
+        perror("file size is not divisible by blocksize", 2)
+
+    output = sh.dd("if={}".format(args.device), "bs={}".format(args.blocksize),
+                   "count={}".format(size // args.blocksize))
+    checksum_device = hashlib.sha512(output.stdout).digest()
+
+    plog("checksum of {!r}:\n  {}\n".format(args.device, checksum_device))
+
+    if checksum_file == checksum_device:
+        plog("match successful")
+        sys.exit(0)
+    else:
+        plog("match failed")
+        sys.exit(1)
+
+
+try:
+    main()
+except OSError as e:
+    perror(e, 2)
