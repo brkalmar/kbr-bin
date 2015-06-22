@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Compare 2 videos using `mplayer` in slave mode.
+#
+# 2015  Bence Kalmar
+
+pdir="$(mktemp -d --tmpdir compare-videos-pipes.XXXXXXXXXX)"
+
+
+p1="${pdir}/p1"
+mkfifo "${p1}"
+p2="${pdir}/p2"
+mkfifo "${p2}"
+
+echo 'pause' | tee "${p1}" "${p2}" &
+
+mplayer -slave -input file="${p1}" -quiet "${1}" &
+mplayer -slave -input file="${p2}" -quiet "${2}" &
+
+tee "${p1}" "${p2}"
+
+
+rm -r "${pdir}"
