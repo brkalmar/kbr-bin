@@ -133,4 +133,8 @@ if args.print_no_action:
     print(" ".join(repr(s) for s in command))
     sys.exit(0)
 
-subprocess.check_call(command)
+try:
+    subprocess.check_call(command)
+except subprocess.CalledProcessError as e:
+    sys.stderr.write(str(e) + "\n")
+    sys.exit(0x80 | e.returncode)
