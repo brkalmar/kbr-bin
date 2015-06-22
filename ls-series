@@ -1,8 +1,0 @@
-#!/bin/bash -e
-
-# List series and their most common attributes using `sfmd ls`. Pass all
-# arguments to `sfmd ls`.
-#
-# 2014  Bence Kalmar
-
-sfmd --ignore-sfmd ls --format-no-name=text --format-no-name-text="$(printf '\033[91mXXXX\033[39m')" --format '{filename}  {"to-watch"b"T"" "} {"running"b"R"" "}  {"title"1"":40.40}  {"title-eng"1"":40.40}  {"year-start"1"":4} - {"year-end"1"":4}  {"language-dubbed"b"D"" "}  {"language"1..", ":20.20}  {"creator"1.."; ":.87}'$'\n' "${@}"

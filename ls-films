@@ -1,8 +1,0 @@
-#!/bin/bash -e
-
-# List films and their most common attributes using `sfmd ls`. Pass all
-# arguments to `sfmd ls`.
-#
-# 2014  Bence Kalmar
-
-sfmd --ignore-sfmd ls --format-no-name=text --format-no-name-text="$(printf '\033[91mMISSING\033[39m')" --format '{filename}  {"to-watch"b"T"" "}  {"title"1"":40.40}  {"title-eng"1"":40.40}  {"year"1"":4}  {"language-dubbed"b"D"" "}  {"language"1..", ":20.20}  {"director"1.."; ":.87}'$'\n' "${@}"
