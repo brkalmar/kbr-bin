@@ -5,4 +5,4 @@
 # 2013-12-24 / 2014-02-25
 # Bence Kalmar
 
-/usr/bin/env python3 /media/external_hdd/storage/torrent/add.py "${@}"
+/usr/bin/env python3 ~/storage/torrent/add.py "${@}"
