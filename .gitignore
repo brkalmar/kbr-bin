@@ -1,6 +1,7 @@
 # Compiled binaries
 /downcase
 /exitcode
+/ligaturize
 /ord
 /padleft
 /padright
