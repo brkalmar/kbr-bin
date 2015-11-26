@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+# 2015  Bence Kalmar
+
+import argparse
+import json
+import os.path
+import subprocess
+import sys
+
+
+parser = argparse.ArgumentParser(
+    description="""
+    “Conform” the framerate of a video to a given framerate; i.e. keep the
+    frames intact, but change that rate at which they are played.  Use `ffmpeg`.
+    """,
+)
+parser.add_argument(
+    "--crf",
+    default="18",
+    help="The `-crf` option for libx264.  Default %(default)r",
+)
+parser.add_argument(
+    "--preset",
+    default="ultrafast",
+    help="The `-preset` option for libx264.  Default: %(default)r",
+)
+parser.add_argument(
+    "in_file",
+    help="The input video filename.",
+    metavar="IN-FILE",
+)
+parser.add_argument(
+    "framerate",
+    help="The output video's framerate.",
+    metavar="FRAMERATE",
+)
+parser.add_argument(
+    "out_file",
+    help="The output video filename.",
+    metavar="OUT-FILE",
+)
+
+args = parser.parse_args()
+
+cmd = ["ffmpeg",
+       "-r", args.framerate,
+       "-i", args.in_file,
+       "-codec:v", "libx264",
+       "-crf", args.crf,
+       "-preset", args.preset,
+       "-threads", "2",
+       args.out_file]
+
+try:
+    subprocess.check_call(cmd)
+except subprocess.CalledProcessError as e:
+    sys.stderr.write("{}\n".format(e))
+    sys.exit(0x80 | e.returncode)
