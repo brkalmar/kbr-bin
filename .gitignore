@@ -2,6 +2,7 @@
 /downcase
 /exitcode
 /ligaturize
+/nr
 /ord
 /padleft
 /padright
