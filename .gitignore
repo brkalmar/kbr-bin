@@ -9,6 +9,9 @@
 /synchsafe-int
 /upcase
 
+# Compiled binary directories
+/scala/
+
 # Symbolic links
 /mc-player-info
 /sfmd
