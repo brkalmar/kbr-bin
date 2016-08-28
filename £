@@ -1,19 +1,27 @@
 #!/bin/bash
 
 # Usage: £ COMMAND [ARGS]...
-# Run COMMAND with args ARGS in the background in a subshell, redirecting all
-# input to `/dev/null'.
-# In case of errors, exit with exit code 100.
 # 
-# 2014-01-10 / 2014-02-25
-# Bence Kalmar
+# Run COMMAND with args ARGS in the background in a subshell, redirecting all
+# output to temporary log-files.  Exit with the command's exit code.
+# 
+# If no COMMAND is given, exit with exit code 100.
+# 
+# 2014  Bence Kalmar
 
 ((${#} < 1)) && exit 100
+
+file_log="$(tempfile --prefix '£-' --suffix '.log')"
+file_err="$(tempfile --prefix '£-' --suffix '.err')"
+
+echo "${1}" > "${file_log}"
+date --iso-8601=seconds >> "${file_log}"
+cat "${file_log}" > "${file_err}"
 
 shopt -s expand_aliases
 
 alias cmd="${1}"
 shift
-cmd "${@}" &>/dev/null &
+cmd "${@}" 1>>"${file_log}" 2>>"${file_err}" &
 
 exit ${?}
