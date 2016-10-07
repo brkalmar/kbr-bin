@@ -11,7 +11,8 @@
 /upcase
 
 # Compiled binary directories
-/scala/
+/src/iso-9-convert/project
+/src/iso-9-convert/target
 
 # Symbolic links
 /mc-player-info

@@ -2,5 +2,4 @@
 
 set dir (dirname (realpath (status -f)))
 
-cd $dir/scala/
-scala io.github.brkalmar.iso9convert.ISO9Convert $argv
+java -jar $dir/src/iso-9-convert/target/scala-2.11/iso-9-convert-assembly-0.1.0.jar $argv

@@ -1,6 +1,5 @@
 package io.github.brkalmar.iso9convert
 
-import java.text
 import scala.io
 
 /** Convert stdin Cyrillic to Latin, print to stdout.
@@ -8,24 +7,44 @@ import scala.io
 object ISO9Convert {
 
   def main(args: Array[String]) {
+    val parser = new scopt.OptionParser[Config]("iso-9-convert") {
+      head("Converts between Latin and Cyrillic, as defined by ISO-9.")
+
+      opt[Unit]('c', "to-cyrillic")
+        .action((_, c) => c.copy(toCyrillic = true))
+        .text("""convert from Latin to Cyrillic (default is from Cyrillic to
+                | Latin)""".stripMargin)
+
+      arg[String]("texts").optional().unbounded()
+        .action((x, c) => c.copy(texts = c.texts :+ x))
+        .text("""texts to convert between scripts (default is to read from
+                | stdin)""".stripMargin)
+    }
+    parser.parse(args, Config()) match {
+      case Some(config) => sys.exit(run(config))
+      case None => sys.exit(2)
+    }
+  }
+
+  private def run(config: Config): Int = {
     val converter = new Converter
-    println(
-      args.length match {
-        case 0 => convertStdIn(converter)
-        case _ => convertArgs(converter, args)
+    val convert =
+      if (config.toCyrillic) converter.latinToCyrillic(_)
+      else converter.cyrillicToLatin(_)
+    val (texts, separator) = 
+      config.texts.length match {
+        case 0 => (io.Source.stdin.getLines(), "\n")
+        case _ => (config.texts, " ")
       }
-    )
-  }
-
-  private def convertStdIn(converter: Converter): String = {
-    io.Source.stdin.getLines().map(converter.cyrillicToLatin(_)).mkString("\n")
-  }
-
-  private def convertArgs(converter: Converter, args: Array[String]): String = {
-    args.map(converter.cyrillicToLatin(_)).mkString("\n")
+    println(texts.map(convert).mkString(separator))
+    0
   }
 
 }
+
+/** Contains configuration settings.
+  */
+case class Config(toCyrillic: Boolean = false, texts: Seq[String] = Seq())
 
 /** Convert between Latin and Cyrillic, as defined by ISO-9.
   * 
@@ -117,7 +136,8 @@ class Converter(
   private def convert(
     string: String, map: Map[String, String], longestKey: Int
   ): String = {
-    val s = text.Normalizer.normalize(string, text.Normalizer.Form.NFC)
+    val s = java.text.Normalizer.normalize(
+      string, java.text.Normalizer.Form.NFC)
 
     /** recurisvely replace all substrings */
     def replace(index: Int): String = {
