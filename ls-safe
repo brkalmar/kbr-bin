@@ -6,6 +6,7 @@
 
 import sys
 import os
+import os.path
 import argparse
 import subprocess
 import shutil
@@ -36,7 +37,17 @@ parser.add_argument(
 
 
 def prompt_lines():
-    prompt = os.getenv("PS1")
+    shell = os.getenv("SHELL")
+    if shell is None:
+        prompt = None
+    elif os.path.basename(shell) == "fish":
+        try:
+            prompt = subprocess.check_output("fish_prompt",
+                                             shell=True, executable=shell)
+        except subprocess.CalledProcessError as e:
+            prompt = None
+    else:
+        prompt = os.getenv("PS1")
     return len(prompt.splitlines()) if prompt is not None else 0
 
 def parse_args():
@@ -60,7 +71,7 @@ def main():
     # `-C` is needed, otherwise ls prints only 1 column since it recognizes that
     # the output is not a tty
     ls_short = command + ["-C"] + args
-    lines = terminal_size.lines - prompt_lines()
+    lines = terminal_size.lines - prompt_lines() - 1
 
     try:
         op_long = subprocess.check_output(ls_long, universal_newlines=True)
