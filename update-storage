@@ -1,9 +1,0 @@
-#!/bin/fish
-
-mkdir --parents ~/storage/
-
-command rm --force ~/storage/*
-
-ln --force --symbolic /media/storage_1/storage/* ~/storage/
-
-ln --force --symbolic /media/storage_2/storage/* ~/storage/
