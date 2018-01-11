@@ -4,8 +4,7 @@
 /ligaturize
 /nr
 /ord
-/padleft
-/padright
+/pad
 /random
 /synchsafe-int
 /upcase
