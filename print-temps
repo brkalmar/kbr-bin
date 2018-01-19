@@ -2,8 +2,10 @@
 
 # Output the current CPU and GPU temperatures.
 
-echo -n CPU: (sensors -u | grep -F 'temp1_input' | head -n1 | sed -r 's/^.*\W([0-9]+)\.[0-9]*$/\1/')
+echo -n 'CPU '
+sensors -u | grep -F 'temp1_input' | head -n1 | sed -r 's/^.*\W([0-9]+)\.[0-9]*$/\1/' | tr -d '\n'
 echo ' °C'
 
-echo -n GPU: (nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
+echo -n 'GPU '
+nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader | tr -d '\n'
 echo ' °C'
