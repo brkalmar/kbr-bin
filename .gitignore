@@ -2,6 +2,7 @@
 /downcase
 /exitcode
 /ligaturize
+/munch
 /nr
 /ord
 /pad
