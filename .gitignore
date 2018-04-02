@@ -9,10 +9,6 @@
 /synchsafe-int
 /upcase
 
-# Compiled binary directories
-/src/iso-9-convert/project
-/src/iso-9-convert/target
-
 # Symbolic links
 /mc-player-info
 /sfmd
