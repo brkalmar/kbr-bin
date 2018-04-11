@@ -14,11 +14,11 @@ fn main() {
             eprintln!("{}", e);
             1
         },
-        Ok(_) => 0,
+        Ok(status) => status,
     });
 }
 
-fn run() -> Res<()> {
+fn run() -> Res<i32> {
     let hard_soft_sign_default = lib::HardSoftSign::default().to_string();
     let hook_to_left_default = lib::HookToLeft::default().to_string();
     let matches = clap::App::new(crate_name!())
@@ -73,7 +73,8 @@ fn run() -> Res<()> {
             value_t!(matches.value_of("hook-to-left"), lib::HookToLeft)?),
     };
 
-    convert_all_to(&converter, input, sep, &mut io::stdout())
+    convert_all_to(&converter, input, sep, &mut io::stdout())?;
+    Ok(0)
 }
 
 fn convert_all_to(converter: &lib::Converter,

@@ -5,69 +5,25 @@
 extern crate term_size;
 
 use std::env;
+use std::error;
 use std::io::prelude::*;
 use std::io;
 use std::path::Path;
 use std::process;
 
-type Result<T> = std::result::Result<T, String>;
+type Res<T> = Result<T, Box<error::Error>>;
 
-fn prompt_fish() -> Result<String> {
-    let mut command = process::Command::new("fish");
-    command.arg("-c")
-        .arg("fish_prompt")
-        .stderr(process::Stdio::inherit());
-
-    let output = command.output()
-        .map_err(|e| format!("{:?} failed: {}", command, e))?;
-    if output.status.success() {
-        String::from_utf8(output.stdout)
-            .map_err(|e| format!("{:?} output: {}", command, e))
-    } else {
-        Err(format!("{:?} status: {:?}", command, output.status.code()))
-    }
-}
-
-fn prompt_bash() -> Result<String> {
-    const PROMPT_VAR: &str = "PS1";
-    env::var(PROMPT_VAR).map_err(|e| format!("{}: {}", PROMPT_VAR, e))
-}
-
-fn prompt_lines() -> Result<usize> {
-    const SHELL_VAR: &str = "SHELL";
-    let shell = match env::var(SHELL_VAR) {
-        Err(_) => None,
-        Ok(s) => match Path::new(&s).file_name() {
-            None => None,
-            Some(s) => {
-                Some(s.to_os_string().into_string()
-                     .map_err(|s| format!("{} filename: {:?}", SHELL_VAR, s))?)
-            },
+fn main() {
+    process::exit(match run() {
+        Err(e) => {
+            eprintln!("{}", e);
+            1
         },
-    };
-    let prompt = match shell {
-        None => None,
-        Some(s) => Some(match s.as_str() {
-            "fish" => prompt_fish()?,
-            _ => prompt_bash()?,
-        }),
-    };
-    Ok(prompt.map_or(0, |s| s.lines().count()))
+        Ok(status) => status,
+    });
 }
 
-fn output_ls<I, S>(args: I) -> Result<Vec<u8>>
-    where I: IntoIterator<Item=S>, S: AsRef<std::ffi::OsStr>
-{
-    let mut command = process::Command::new("ls");
-    command.args(args)
-        .stderr(process::Stdio::inherit());
-
-    command.output()
-        .map(|output| output.stdout)
-        .map_err(|e| format!("{:?} failed: {}", command, e))
-}
-
-fn run() -> Result<()> {
+fn run() -> Res<i32> {
     let size = term_size::dimensions_stdout();
 
     let args = {
@@ -89,8 +45,7 @@ fn run() -> Result<()> {
 
     let output = if let Some((_, height)) = size {
         let lines_max = height - prompt_lines()?;
-        let long_str = String::from_utf8(long.clone())
-            .map_err(|e| e.to_string())?;
+        let long_str = String::from_utf8(long.clone())?;
         if long_str.lines().count() <= lines_max {
             long
         } else {
@@ -104,17 +59,59 @@ fn run() -> Result<()> {
         long
     };
 
-    io::stdout().write(&output)
-        .map_err(|e| format!("failed write to stdout: {}", e))?;
-    Ok(())
+    io::stdout().write(&output)?;
+    Ok(0)
 }
 
-fn main() {
-    process::exit(match run() {
-        Err(e) => {
-            eprintln!("error: {}", e);
-            1
+fn output_ls<I, S>(args: I) -> Res<Vec<u8>>
+    where I: IntoIterator<Item=S>, S: AsRef<std::ffi::OsStr>
+{
+    let mut command = process::Command::new("ls");
+    command.args(args)
+        .stderr(process::Stdio::inherit());
+
+    command.output().map(|output| output.stdout).map_err(Box::from)
+}
+
+fn prompt_lines() -> Res<usize> {
+    const SHELL_VAR: &str = "SHELL";
+    let shell = match env::var(SHELL_VAR) {
+        Err(_) => None,
+        Ok(s) => match Path::new(&s).file_name() {
+            None => None,
+            Some(s) => {
+                Some(s.to_os_string().into_string()
+                     .map_err(|_| "cannot convert OsString to String")?)
+            },
         },
-        Ok(_) => 0,
-    });
+    };
+    let prompt = match shell {
+        None => None,
+        Some(s) => Some(match s.as_str() {
+            "fish" => prompt_fish()?,
+            _ => prompt_bash()?,
+        }),
+    };
+    Ok(prompt.map_or(0, |s| s.lines().count()))
+}
+
+fn prompt_fish() -> Res<String> {
+    let mut command = process::Command::new("fish");
+    command.arg("-c")
+        .arg("fish_prompt")
+        .stderr(process::Stdio::inherit());
+
+    let output = command.output()?;
+    if output.status.success() {
+        Ok(String::from_utf8(output.stdout)?)
+    } else {
+        Err(Box::from(format!("{:?} status: {:?}", command,
+                              output.status.code())))
+    }
+}
+
+fn prompt_bash() -> Res<String> {
+    const PROMPT_VAR: &str = "PS1";
+    env::var(PROMPT_VAR)
+        .map_err(|e| Box::from(format!("{}: {}", PROMPT_VAR, e)))
 }
