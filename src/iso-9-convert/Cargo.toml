@@ -1,0 +1,8 @@
+[package]
+description = "Convert between Cyrillic and Latin, as defined by ISO-9."
+name = "iso-9-convert"
+version = "0.1.0"
+
+[dependencies]
+clap = "2.31.2"
+unicode-normalization = "0.1.5"
