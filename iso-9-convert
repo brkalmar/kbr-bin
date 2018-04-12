@@ -1,5 +1,0 @@
-#!/bin/fish
-
-set dir (dirname (realpath (status -f)))
-
-java -jar $dir/src/iso-9-convert/target/scala-2.11/iso-9-convert-assembly-0.1.0.jar $argv

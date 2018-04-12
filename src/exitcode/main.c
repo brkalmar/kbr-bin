@@ -1,15 +1,11 @@
-/*
-  Exit with first argument as the exit code.
-  If this argument is not a number in the range 0-255 then exit with 0.
-
-  2013-12-22 / 2014-01-05
-  AlbusDrachir
-*/
+/* Exit with first argument as the exit code.
+ * If this argument is not a number in the range 0-255 then exit with 0.
+ */
 
 #include <stdlib.h>
 #include <errno.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
     char *endp;
     int exit_code;
 

@@ -1,0 +1,8 @@
+[package]
+description = "Replace Latin letter combinations with ligatures."
+name = "ligaturize"
+version = "0.1.0"
+
+[dependencies]
+clap = "2.31.2"
+unicode-normalization = "0.1.5"

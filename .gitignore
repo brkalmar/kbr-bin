@@ -1,19 +1,17 @@
-# Compiled binaries
-/downcase
+# Symbolic links
 /exitcode
+/iso-9-convert
+/lf
 /ligaturize
+/mc-player-info
 /munch
 /nr
 /ord
 /pad
 /random
-/synchsafe-int
-/upcase
-
-# Symbolic links
-/mc-player-info
 /sfmd
 /shotcut
+/synchsafe-int
 /teamspeak
 /ts3client
 
