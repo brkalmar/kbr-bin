@@ -1,0 +1,11 @@
+[package]
+description = "Check whether some files' contents are the same."
+name = "same-file"
+version = "0.1.0"
+
+[dependencies]
+clap = "2.31.2"
+num_cpus = "1.8.0"
+quick-error = "1.2.1"
+strum = "0.9.0"
+strum_macros = "0.9.0"
