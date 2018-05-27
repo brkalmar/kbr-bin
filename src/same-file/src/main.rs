@@ -151,12 +151,7 @@ fn compare_all(paths: &[&path::Path], buffer_size: usize, threads_max: usize) ->
     let mut comparer = Comparer::new(&first, metadata_first.len(),
                                      threads_max, buffer_size)?;
     for path in rest {
-        let start = std::time::Instant::now();
-        let comparison = comparer.compare(&path);
-        let elapsed = start.elapsed();
-        println!("elapsed: {:03} s {:09} ns", elapsed.as_secs(),
-                 elapsed.subsec_nanos());
-        match comparison? {
+        match comparer.compare(&path)? {
             Comparison::Same => (),
             comparison => return Ok(comparison),
         };
