@@ -4,5 +4,5 @@ name = "iso-9-convert"
 version = "0.1.0"
 
 [dependencies]
-clap = "2.31.2"
-unicode-normalization = "0.1.5"
+clap = "2.32.0"
+unicode-normalization = "0.1.7"

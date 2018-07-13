@@ -4,8 +4,8 @@ name = "same-file"
 version = "0.1.0"
 
 [dependencies]
-clap = "2.31.2"
+clap = "2.32.0"
 num_cpus = "1.8.0"
-quick-error = "1.2.1"
-strum = "0.9.0"
-strum_macros = "0.9.0"
+quick-error = "1.2.2"
+strum = "0.10.0"
+strum_macros = "0.10.0"
