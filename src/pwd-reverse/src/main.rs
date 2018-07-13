@@ -13,6 +13,10 @@ fn main() {
     };
 
     if let Ok(mut dir) = env::current_dir() {
+        if dir.file_name().is_none() {
+            println!("{}", separator);
+            return;
+        }
         loop {
             match dir.file_name() {
                 None => break,
@@ -25,7 +29,13 @@ fn main() {
                             process::exit(1);
                         }
                     };
-                    print!("{}{}", component, separator);
+                    match dir.parent() {
+                        Some(parent) if parent != path::Path::new("") => {
+                            print!("{}{}", component, separator)
+                        },
+                        Some(_) |
+                        None => print!("{}", component),
+                    };
                 }
             }
             dir.pop();
