@@ -1,0 +1,19 @@
+#!/bin/fish
+
+# Usage: grub-play BPM [FREQ-HZ DURATION-BEATS]...
+
+set -l base_ms (echo "scale = 5; 60 / "$argv[1]" * 1000" | bc)
+
+for arg in $argv[2..-1]
+    if not set -q frequency
+        if test $arg -eq 0
+            set frequency 0.1
+        else
+            set frequency $arg
+        end
+        continue
+    end
+    set duration (echo "scale = 5; $arg * $base_ms" | bc)
+    beep -f $frequency -l $duration
+    set -e frequency
+end
