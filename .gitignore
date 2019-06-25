@@ -21,6 +21,7 @@
 /synchsafe-int
 /teamspeak
 /ts3client
+/unicode-normalize
 
 # Third-party
 /repo
