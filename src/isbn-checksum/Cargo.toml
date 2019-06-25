@@ -1,0 +1,6 @@
+[package]
+name = "isbn-checksum"
+version = "0.1.0"
+
+[dependencies]
+lazy_static = "1.2.0"
