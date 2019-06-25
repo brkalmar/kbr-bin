@@ -1,0 +1,9 @@
+[package]
+description = "Convert input to a Unicode Normalization Form output."
+edition = "2018"
+name = "unicode-normalize"
+version = "0.1.0"
+
+[dependencies]
+clap = "2"
+unicode-normalization = "0.1"
