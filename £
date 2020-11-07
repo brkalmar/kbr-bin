@@ -1,18 +1,16 @@
 #!/bin/bash
 
 # Usage: £ COMMAND [ARGS]...
-# 
+#
 # Run COMMAND with args ARGS in the background in a subshell, redirecting all
 # output to temporary log-files.  Exit with the command's exit code.
-# 
+#
 # If no COMMAND is given, exit with exit code 100.
-# 
-# 2014  Bence Kalmar
 
 ((${#} < 1)) && exit 100
 
-file_log="$(tempfile --prefix '£-' --suffix '.log')"
-file_err="$(tempfile --prefix '£-' --suffix '.err')"
+file_log="$(mktemp --tmpdir --suffix '.log' '£-XXXXXX')"
+file_err="$(mktemp --tmpdir --suffix '.err' '£-XXXXXX')"
 
 echo "${@}" > "${file_log}"
 date --iso-8601=seconds >> "${file_log}"
